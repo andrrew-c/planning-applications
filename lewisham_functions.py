@@ -8,6 +8,9 @@ import pickle
 
 from functions import initbrowser
 
+# Progress bars
+from tqdm import tqdm 
+
 # Beautiful Soup
 from bs4 import BeautifulSoup as bs
 
@@ -133,7 +136,7 @@ def saveLinks(hrefs, postcode):
     if not os.path.isfile(fname):
         with open(fname, 'wb') as f: pickle.dump(hrefs, f)
     else:
-        print("File '{} already exists.".format(fname))
+        print("File '{}' already exists.".format(fname))
         #with open(fname, 'rb') as f: hrefs = pickle.load(f)
         
 def loadLinks(postcode):
@@ -200,7 +203,7 @@ def tabletoDF(browser, tabs, app=None):
 
     ## Initiliase table
     table = GetTableFromPage(browser)
-
+    
     ## Save URL
     table.url = app
 
@@ -220,7 +223,8 @@ def tabletoDF(browser, tabs, app=None):
             newColumns = ['{}_{}'.format(t.replace(' ', '_'), c) if c in table.columns else c for c in newTable.columns]
             newTable.columns = newColumns
 
-            table= table.merge(newTable, 'outer', left_index=True, right_index=True)
+            table = table.merge(newTable, 'outer', left_index=True, right_index=True)
+            
 
     # Remove all spaces from col names
     newColumns = [col.replace(' ', '_') for col in table.columns]
@@ -246,16 +250,19 @@ def getDetailsMultiplePages(browser, links, singlePage=False):
         df = tabletoDF(browser, tabs)
 
     else:
-    
+        i = 0
         for link in tqdm(links):
+            i += 1
 
+            if i > 3:
+                break
             # Load up application
             app = link
             
             try:
                 browser.get(app)
 
-                tabletoDF(browser, tabs, app)
+                t1 = tabletoDF(browser, tabs, app)
                 ## If df hasn't been updated yet
                 if df.shape[0] == 0:
                     df = t1.copy()
@@ -283,7 +290,7 @@ def saveApplicationInfo(df, postcode):
 
         with open(fname, 'wb') as f: pickle.dump(df, f)    
 
-def mainLoop(args, loadLinks=False):
+def mainLoop(args, bloadLinks=False):
 
 
     # Extract arguments from arguments dictionary
@@ -309,7 +316,7 @@ def mainLoop(args, loadLinks=False):
         resultPages = getResultNumber(browser, searchResults)
 
         # If user specified to NOT load links
-        if not loadLinks:
+        if not bloadLinks:
             # Get Links for apps: Iterate through all search pages and get links
             hrefs = getSearchResults(browser, searchResults, resultPages)
 
@@ -329,7 +336,7 @@ def mainLoop(args, loadLinks=False):
 
         df = getDetailsMultiplePages(browser, None, True)
 
-    
+    print("df shape =", df.shape)
         
         
     # Save application data
