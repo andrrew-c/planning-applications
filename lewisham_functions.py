@@ -1,9 +1,15 @@
-import os 
+import os
 import re
 from datetime import datetime
 import time
 
+import pandas as pd
 import pickle
+
+from functions import initbrowser
+
+# Beautiful Soup
+from bs4 import BeautifulSoup as bs
 
 ## Num pages
 rgx_showing = re.compile("(?<=-)[0-9]+")
@@ -116,7 +122,7 @@ def saveLinks(hrefs, postcode):
     
     """ With a list of hrefs, let's save as pickled object"""
     
-    fname = "links_{}_{}.p".format(postcode, datetime.today().strftime('%Y%m%d'))
+    fname = ".data/links_{}_{}.p".format(postcode, datetime.today().strftime('%Y%m%d'))
 
     # Does a file with a similar name already exist?
     if hrefs==None:
@@ -135,7 +141,7 @@ def loadLinks(postcode):
     # RegEx to find a file with name
     rgx_fname = re.compile("links_{pc}_[0-9]{{8}}.p".format(pc=postcode))
     
-    fname = "links_{}_{}.p".format(postcode, datetime.today().strftime('%Y%m%d'))
+    fname = ".data/links_{}_{}.p".format(postcode, datetime.today().strftime('%Y%m%d'))
 
     if not os.path.exists(fname):
 
@@ -163,4 +169,169 @@ def loadLinks(postcode):
         return hrefs
     else:
         return None
+    
+def GetTableFromPage(browser, transp=True):
+    
+    """ Assumes a live browser object (selenium)
+        returns a table extracted from the HTML
+    """
+    
+    # Init table
+    table = None
+    
+    # Let's load a table into a pd dataframe
+    html = browser.page_source
+    soup = bs(html, 'html.parser')
+    div = soup.find('table')
+    if div !=None:
+        table = pd.read_html(str(div))[0]
+        #table.iloc[:,0]
+        #table.columns = table.iloc[:,0]
+        #table.drop(index=0, inplace=True)
+        if transp:
+            table = table.transpose() 
+        table.columns =table.iloc[0,:]
+        table.drop(index=0, inplace=True)
+    return table
+
+def tabletoDF(browser, tabs, app=None):
+
+    """ Get table from page (selenium browser) and transform it into a dataframe"""
+
+    ## Initiliase table
+    table = GetTableFromPage(browser)
+
+    ## Save URL
+    table.url = app
+
+    ## Iterate over remaining tab names
+    for t in tabs[1:]:
+
+        #print(t)
+        xp = "//span[contains(text(), '{}')]".format(t)
+
+        btn = browser.find_element_by_xpath(xp)
+        tabLink = btn.find_element_by_xpath('./..').get_attribute('href')
+        browser.get(tabLink)
+        newTable = GetTableFromPage(browser)
+
+        if str(type(newTable)) == "<class 'pandas.core.frame.DataFrame'>":
+            ## Update column names if already in table
+            newColumns = ['{}_{}'.format(t.replace(' ', '_'), c) if c in table.columns else c for c in newTable.columns]
+            newTable.columns = newColumns
+
+            table= table.merge(newTable, 'outer', left_index=True, right_index=True)
+
+    # Remove all spaces from col names
+    newColumns = [col.replace(' ', '_') for col in table.columns]
+    table.columns = newColumns
+
+    return table
+
+    
+
+def getDetailsMultiplePages(browser, links, singlePage=False):
+    
+    """
+        Loops over multiple pages to get information from the links
+    """
+    
+    tabs = "Summary,Further Information,Contacts,Important Dates".split(',')
+    
+    ## Initialise dataframe
+    df = pd.DataFrame()
+
+    if singlePage:
+
+        df = tabletoDF(browser, tabs)
+
+    else:
+    
+        for link in tqdm(links):
+
+            # Load up application
+            app = link
+            
+            try:
+                browser.get(app)
+
+                tabletoDF(browser, tabs, app)
+                ## If df hasn't been updated yet
+                if df.shape[0] == 0:
+                    df = t1.copy()
+                else:
+
+                    ## Add on row
+                    df = df.append(t1, sort=False)
+
+                time.sleep(1)
+            except: 
+                pass
+            
+        
+    return df
+            
+def saveApplicationInfo(df, postcode):
+    
+    """ Save the application information that has been scraped by getDetailsMultiplePages """
+    
+    fname = ".data/data_{}_{}.p".format(postcode, datetime.today().strftime('%Y%m%d'))
+    
+    if os.path.exists(fname):
+        print("File '{}' already exists'")
+    else:
+
+        with open(fname, 'wb') as f: pickle.dump(df, f)    
+
+def mainLoop(args, loadLinks=False):
+
+
+    # Extract arguments from arguments dictionary
+    postcode = args['postcode']
+    urlbase= args['urlbase']
+    
+    ## Init browser object on planning page
+    browser = initbrowser(urlbase)
+
+    ## With browser object make search
+    makeSearch(postcode, browser)
+
+    # Boolean - did the search return multiple results or a single application
+    searchResults = hasMultipleResults(browser)
+
+    # If search results
+    if searchResults:
+
+        # Update results page to show 100/page
+        makeResults100(browser)
+
+        # Create dictionary of number of results
+        resultPages = getResultNumber(browser, searchResults)
+
+        # If user specified to NOT load links
+        if not loadLinks:
+            # Get Links for apps: Iterate through all search pages and get links
+            hrefs = getSearchResults(browser, searchResults, resultPages)
+
+            ## Save links to pickled object
+            saveLinks(hrefs, postcode) #os.path.abspath(os.curdir)
+
+        # User thinks pickled object already exists
+        else:
+            
+            hrefs = loadLinks(postcode)
+
+        # With links, create dataframe
+        df = getDetailsMultiplePages(browser, hrefs)
+
+    ## Else, there's only one application for the given postcode
+    else:
+
+        df = getDetailsMultiplePages(browser, None, True)
+
+    
+        
+        
+    # Save application data
+    saveApplicationInfo(df, postcode)
         
