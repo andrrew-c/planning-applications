@@ -17,9 +17,15 @@ import lewisham_functions as lf
 
 import functions as mf
 
-## Base URL used for planning applications
-urlbase = "https://planning.lewisham.gov.uk/online-applications"
+import json
 
+
+# Open file and read in any parameters
+with open('.data/params.txt', 'rt') as f: params = json.loads(f.read())
+
+
+## Base URL used for planning applications
+urlbase = params['urlbase']
 
 def getArgs(args):
 
@@ -51,5 +57,5 @@ if __name__== '__main__':
 
     print(sys.argv)
     args = getArgs(sys.argv)
-    lf.mainLoop(args, loadLinks=True)
+    lf.mainLoop(args, bloadLinks=True)
     
