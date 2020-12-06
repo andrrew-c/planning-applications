@@ -259,8 +259,6 @@ def getDetailsMultiplePages(browser, links, singlePage=False):
         for link in tqdm(links):
             i += 1
 
-            if i > 3:
-                break
             # Load up application
             app = link
             
