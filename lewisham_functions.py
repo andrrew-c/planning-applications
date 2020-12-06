@@ -17,7 +17,7 @@ from bs4 import BeautifulSoup as bs
 ## Num pages
 rgx_showing = re.compile("(?<=-)[0-9]+")
 rgx_results = re.compile("(?<=of )[0-9]+")
-
+datafolder = '.data'
 
 def makeSearch(postcode, browser):
 
@@ -140,23 +140,28 @@ def saveLinks(hrefs, postcode):
         #with open(fname, 'rb') as f: hrefs = pickle.load(f)
         
 def loadLinks(postcode):
+
     
     # RegEx to find a file with name
     rgx_fname = re.compile("links_{pc}_[0-9]{{8}}.p".format(pc=postcode))
     
-    fname = ".data/links_{}_{}.p".format(postcode, datetime.today().strftime('%Y%m%d'))
-
+    fname = "{}/links_{}_{}.p".format(datafolder, postcode, datetime.today().strftime('%Y%m%d'))
+    
+    # If file doesn't exist
     if not os.path.exists(fname):
 
         print(rgx_fname)
+        
+        os.chdir('.data')
         files =os.listdir()
         fileMatches = [f for f in files if rgx_fname.match(f)]
+        os.chdir('..')
         #print(len(files))
 
         # If there's at least one match that isn't today
         if fileMatches != []:
             # Get latest file
-            fname = fileMatches[-1]
+            fname = '{}/{}'.format(datafolder, fileMatches[-1])
         else:
             print("No hrefs file with today's date or another exists")
             return None
@@ -325,11 +330,15 @@ def mainLoop(args, bloadLinks=False):
 
         # User thinks pickled object already exists
         else:
-            
+
+            print("Let's load up links")
             hrefs = loadLinks(postcode)
 
         # With links, create dataframe
-        df = getDetailsMultiplePages(browser, hrefs)
+        if hrefs != None:
+            df = getDetailsMultiplePages(browser, hrefs)
+        else:
+            print("Error - no hrefs loaded up")
 
     ## Else, there's only one application for the given postcode
     else:
