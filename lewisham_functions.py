@@ -318,7 +318,6 @@ def mainLoop(args, bloadLinks=False):
     ## With browser object make search
     makeSearch(postcode, browser)
 
-    print("Goign to check....")
     # If there's at least one result for this postcode
     if not hasAResult(browser):
         print("Postcode '{}' has no results".format(postcode))
