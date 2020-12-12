@@ -318,11 +318,12 @@ def mainLoop(args, bloadLinks=False):
     ## With browser object make search
     makeSearch(postcode, browser)
 
+    print("Goign to check....")
     # If there's at least one result for this postcode
-    if not hasAResult:
+    if not hasAResult(browser):
         print("Postcode '{}' has no results".format(postcode))
         input("Press enter to exit.")
-        sys.exit()
+        return 0
     
     # Boolean - did the search return multiple results or a single application
     searchResults = hasMultipleResults(browser)
