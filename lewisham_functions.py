@@ -293,6 +293,18 @@ def saveApplicationInfo(df, postcode):
 
         with open(fname, 'wb') as f: pickle.dump(df, f)    
 
+
+def hasAResult(browser):
+
+    """ Returns True is there's at least one application for the searched for postcode
+        browser - selenium browser object
+    """
+    els = browser.find_elements_by_xpath("//li[contains(text(), 'No results found.')]")
+    if len(els) >0 :
+        return False
+    else:
+        return True
+
 def mainLoop(args, bloadLinks=False):
 
 
@@ -306,6 +318,12 @@ def mainLoop(args, bloadLinks=False):
     ## With browser object make search
     makeSearch(postcode, browser)
 
+    # If there's at least one result for this postcode
+    if not hasAResult:
+        print("Postcode '{}' has no results".format(postcode))
+        input("Press enter to exit.")
+        sys.exit()
+    
     # Boolean - did the search return multiple results or a single application
     searchResults = hasMultipleResults(browser)
 
@@ -349,3 +367,4 @@ def mainLoop(args, bloadLinks=False):
     # Save application data
     saveApplicationInfo(df, postcode)
         
+
