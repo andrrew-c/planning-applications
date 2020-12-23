@@ -366,5 +366,8 @@ def mainLoop(args, bloadLinks=False):
         
     # Save application data
     saveApplicationInfo(df, postcode)
+
+    # Close browser
+    browser.close()
         
 
