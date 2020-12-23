@@ -21,11 +21,6 @@ dupfile = os.path.join(datapath, dupname)
 postcode = 'SE264'
 date = '20201206'
 dataobj = '{path}/data_{pc}_{dt}.p'.format(path=datapath, pc=postcode, dt=date)
-
-
-def connectDB(dbname):
-    """ Returns connection object"""
-    return sqlite3.connect(dbpath)
     
 
 def createTables(con, df):
