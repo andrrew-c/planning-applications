@@ -13,7 +13,7 @@ import pandas as pd
 import pickle
 
 # My functions
-import lewisham_functions as lf
+import planning_functions as pf
 
 import functions as mf
 
@@ -57,7 +57,7 @@ if __name__== '__main__':
 
     print(sys.argv)
     args = getArgs(sys.argv)
-    lf.mainLoop(args)
+    pf.mainLoop(args)
 
 
     
