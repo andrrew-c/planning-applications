@@ -17,7 +17,7 @@ The main loop is in the module planning_functions.py
 
 All outputs will be written to a folder in the main directory called .data
 
-The .data folder should hold a text file called 
+The .data folder should hold a text file called params.txt
 
 ### .data/params.txt
 
