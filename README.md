@@ -1,2 +1,2 @@
-# lewisham-planning
- Scraping and analysis of lewisham planning data
+# planning-applications
+ Scraping and analysis of planning data using local authority portals
