@@ -40,7 +40,7 @@ Read in by the function getArgs.
 
 Format
 
-<code>{boroughname:{"urlbase":string}}<\code>
+<code>{boroughname:{"urlbase":string}}</code>
 
 ### urlbase: string value of URL for main planning portal page
 
