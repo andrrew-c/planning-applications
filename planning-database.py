@@ -1,3 +1,5 @@
+import pdb
+
 import sqlite3
 import os, sys
 import pickle
@@ -5,31 +7,51 @@ import pickle
 from tqdm import tqdm
 
 ## Database name
-dbname = 'lew-apps.db'
+dbname = 'plan-applications.db'
 
 # Data path
 datapath = '.data'
 
-# Database path
-dbpath = os.path.join(datapath, dbname)
+def getFileNames(prefix):
 
-# File holding duplicates
-dupname = 'duplicates.csv'
-dupfile = os.path.join(datapath, dupname)
+    """ Returns list of files that match prefix"""
 
-# Postcode for df
-postcode = 'SE264'
-date = '20201206'
-dataobj = '{path}/data_{pc}_{dt}.p'.format(path=datapath, pc=postcode, dt=date)
-    
+    # List files in directory    
+    ldir = os.listdir()
 
-def createTables(con, df):
+    # Files that have prefix
+    files = [f for f in ldir if f[:len(prefix)]==prefix]
+
+    return files
+
+def getAllColumns(files):
+
+    """ Loop through files and get all column names """
+
+    cols = []
+
+    # Loop through each file
+    for file in tqdm(files, desc="Processing file"):
+
+        # Create dataframe
+        with open(file, 'rb') as f: df = pickle.load(f)
+
+        # List of new cols
+        newCols = df.columns.to_list()
+        
+        cols.extend(newCols)
+
+        # Make list unique
+        cols = list(set(cols))
+        
+    return cols
+
+
+def createTables(con, cols):
 
     """ With dataframe and db connection - create tables, if not already existing"""
-   
-    # Get columns from dataframe
-    cols = df.columns
-    
+
+    # SQL statement to create tables   
     sql = """ CREATE TABLE IF NOT EXISTS applications (
                 {} STRING
                 )
@@ -62,6 +84,7 @@ def updateDB(con, df):
 
 
     """ Update SQLITE database.
+        Single dataframe
         For each application in dataframe, check whether the reference is in the applications table.
         If not, insert the row into the table.
     """
@@ -114,19 +137,26 @@ def updateDB(con, df):
             
 if __name__ == "__main__":
 
-    # Get df for specific postcode
-    print("Open connection to", dbpath)
-    with open(dataobj, 'rb') as f: df = pickle.load(f)
+    os.chdir(datapath)
+    
+    # Get files in folder
+    files = getFileNames('data')
+
+    # Get columns for all files
+    cols = getAllColumns(files)
 
     ## Connect to DB
-    con = sqlite3.connect(dbpath)
+    con = sqlite3.connect(dbname)
 
     # Create tables
-    createTables(con, df)
+    createTables(con, cols)
 
-    # Update DB
-    updateDB(con, df)
-    
-    print("Close connection to", dbpath)
+    # Update DB with all files
+    for file in tqdm(files, desc="Update DB"):
+        with open(file, 'rb') as f: df = pickle.load(f)
+        
+        # Update DB
+        updateDB(con, df)
+        
+    print("Close connection to", dbname)
     con.close()
-
