@@ -22,20 +22,36 @@ import json
 
 # Open file and read in any parameters
 with open('.data/params.txt', 'rt') as f: params = json.loads(f.read())
-
-
-## Base URL used for planning applications
-urlbase = params['urlbase']
-
+    
 def getArgs(args):
 
     """ Return dictionary of arguments passed
+
+        '-b': STRING - brough name, e.g. Southwark, Bromley, Lewisham
         '-p': STRING - postcode
+        {'urlbase':url, 'postcode':postcode}
     """
 
-    argsDict = {'urlbase':urlbase}
-    
+    # Init dictionary
+    argsDict = {}
 
+    # Extract borough from arguments
+    try:
+        borough = args[args.index('-b')+1]
+
+        # Check that borough name doesn't start with '-' for another option
+        if borough[0] == '-':
+            return 0
+    except ValueError:
+        print("-b not in argumnets provided by user")
+        return 0
+
+
+    # URL for planning applications        
+    urlbase = params[borough]['urlbase']
+    argsDict.update({'urlbase':urlbase})
+    
+    # Get postcode
     bPostcode = False
     for i in range(len(args)):
 
@@ -49,6 +65,8 @@ def getArgs(args):
     if not bPostcode:
         postcode = input("Please enter a postcode to search, e.g. SE154 for 'SE15 4' ")
         argsDict.update({'postcode':postcode.upper()})
+
+    # Return output of function
     return argsDict
             
 
