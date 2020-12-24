@@ -15,16 +15,16 @@ The main loop is in the module planning_functions.py
 
 Arguments
 
--b: Borough name
+-b: Borough name<br>
 -p: Postcode usually require down to (at least) postcode sector (e.g. SE23 1).  Some (where there are more applications) sites may require further down in the postcode.
 
 ## To run
 
-<code>python master-planning-wrapper.py -b *borough name* -p *postcode*<\code>
+<code>python master-planning-wrapper.py -b *borough name* -p *postcode*<code>
 
 For example, 
 
-<code>python master-planning-wrapper.py -b Lewisham -p SE231<\code>
+<code>python master-planning-wrapper.py -b Lewisham -p SE231<code>
 
 ## .data 
 
