@@ -56,20 +56,38 @@ def makeResults100(browser):
     browser.find_element_by_xpath("//input[@type='submit']").click()
 
 def getResultNumber(browser, searchResults):
+
+    import pdb
     
     """ Return a dictionary: the total number of results and the number of results/page """
-    
  
     if searchResults:
+        
+        # Are all results on one page?
+        text_results = browser.find_elements_by_xpath("//span[@class='showing']")
+        if len(text_results) == 0:
+            # Need to find element which holds list
+            current_results = len(browser.find_elements_by_xpath("//li[@class='searchresult']"))
+            num_results = current_results
+            
+            print("Currently showing all results of {:,}".format(current_results))
+            print("There are {:,} results in total".format(num_results))
+                
+            
+        
 
-        ## How many results?
-        text_results = browser.find_element_by_xpath("//span[@class='showing']").text
-        #print(text_results)
-        current_results = int(rgx_showing.findall(text_results)[0])
-        num_results = int(rgx_results.findall(text_results)[0])
+        # Results are over at least 2 pages
+        else:
 
-        print("Currently showing up to {}".format(current_results))
-        print("There are {:,} results in total".format(num_results))
+            ## How many results?
+            text_results = browser.find_element_by_xpath("//span[@class='showing']").text
+            #print(text_results)
+            current_results = int(rgx_showing.findall(text_results)[0])
+            num_results = int(rgx_results.findall(text_results)[0])
+
+            print("Currently showing up to {}".format(current_results))
+            print("There are {:,} results in total".format(num_results))
+    # Else, single result
     else:
         current_results = 1
         num_results = 1
