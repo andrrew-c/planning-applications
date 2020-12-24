@@ -13,6 +13,19 @@ The file **master-planning-wrapper** is used to get key parameters and kick of t
 
 The main loop is in the module planning_functions.py
 
+Arguments
+
+-b: Borough name
+-p: Postcode usually require down to (at least) postcode sector (e.g. SE23 1).  Some (where there are more applications) sites may require further down in the postcode.
+
+## To run
+
+<code>python master-planning-wrapper.py -b *borough name* -p *postcode*<\code>
+
+For example, 
+
+<code>python master-planning-wrapper.py -b Lewisham -p SE231<\code>
+
 ## .data 
 
 All outputs will be written to a folder in the main directory called .data
