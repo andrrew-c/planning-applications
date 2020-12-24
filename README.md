@@ -20,11 +20,11 @@ Arguments
 
 ## To run
 
-<code>python master-planning-wrapper.py -b *borough name* -p *postcode*<code>
+<code>python master-planning-wrapper.py -b *borough name* -p *postcode*</code>
 
 For example, 
 
-<code>python master-planning-wrapper.py -b Lewisham -p SE231<code>
+<code>python master-planning-wrapper.py -b Lewisham -p SE231</code>
 
 ## .data 
 
