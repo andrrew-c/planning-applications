@@ -19,14 +19,19 @@ import functions as mf
 
 import json
 
+datafolder = 'data'
 
 # Open file and read in any parameters
-with open('.data/params.txt', 'rt') as f: params = json.loads(f.read())
+with open('{}/params.txt'.format(datafolder), 'rt') as f: params = json.loads(f.read())
     
 def getArgs(args):
 
     """ Return dictionary of arguments passed
 
+        args - List of options
+            -b: Mandatory - borough
+            -p: Optional - postcode to search, if not provided, will ask for it
+            
         '-b': STRING - brough name, e.g. Southwark, Bromley, Lewisham
         '-p': STRING - postcode
         {'urlbase':url, 'postcode':postcode}
