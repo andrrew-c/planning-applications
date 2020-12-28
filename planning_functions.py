@@ -416,11 +416,41 @@ def processPostcodes(df):
     p1 = pd.concat([pcodes, pcodes.str.split().map(lambda x:x[0])], axis=1)
     p2 = pd.concat([p1, pcodes.str.split().map(lambda x:"{}{}".format(x[0], x[1][0]))], axis=1)
     p3 = pd.concat([p2, pcodes.str.split().map(lambda x:"{}{}".format(x[0], x[1][:2]))], axis=1)
+
+    ## Rename columns
     p3.columns = "postcode1,postcode2,postcode3,postcode4".split(',')
 
-
+  
     return p3
-    
+
+def processPostcodesD(df):
+
+    """ Return a python dictionary of postcodes """
+
+    ### Init dictionary (postcode dictionary)
+    pdict = {}
+
+    # For each high level postcode (e.g. SE17)
+    for pc in df.postcode2.unique():
+        
+        # init sub dictionary
+        sdict = {}
+
+        # For each level down (e.g. SE171, SE172, ...)
+        subs = df[df.postcode2==pc].postcode3.unique()
+        for spc in subs:
+
+            # Get list of unique, most-detailed, postcodes
+            subs2 = list(df[df.postcode3==spc].postcode4.unique())
+
+            # sub-ditionary updated
+            sdict.update({spc:subs2})
+
+        # For this postcode2 (e.g. SE17) update dictionary
+        pdict.update({pc:sdict})
+
+
+    return pdict
 
 if __name__ == '__main__':
     
