@@ -26,13 +26,13 @@ For example,
 
 <code>python master-planning-wrapper.py -b Lewisham -p SE231</code>
 
-## .data 
+## data 
 
 All outputs will be written to a folder in the main directory called .data
 
-The .data folder should hold a text file called params.txt
+The data folder should hold a text file called params.txt
 
-### .data/params.txt
+### data/params.txt
 
 params.txt is in a json format to read into a python dictionary by the module **master-planning-wrapper**.
 
