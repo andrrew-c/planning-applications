@@ -17,7 +17,7 @@ from bs4 import BeautifulSoup as bs
 ## Num pages
 rgx_showing = re.compile("(?<=-)[0-9]+")
 rgx_results = re.compile("(?<=of )[0-9]+")
-datafolder = '.data'
+datafolder = 'data'
 
 def makeSearch(postcode, browser):
 
@@ -143,7 +143,7 @@ def saveLinks(hrefs, postcode):
     
     """ With a list of hrefs, let's save as pickled object"""
     
-    fname = ".data/links_{}_{}.p".format(postcode, datetime.today().strftime('%Y%m%d'))
+    fname = "{}/links_{}_{}.p".format(datafolder, postcode, datetime.today().strftime('%Y%m%d'))
 
     # Does a file with a similar name already exist?
     if hrefs==None:
@@ -170,7 +170,7 @@ def loadLinks(postcode):
 
         print(rgx_fname)
         
-        os.chdir('.data')
+        os.chdir(datafolder)
         files =os.listdir()
         fileMatches = [f for f in files if rgx_fname.match(f)]
         os.chdir('..')
@@ -303,7 +303,7 @@ def saveApplicationInfo(df, postcode):
     
     """ Save the application information that has been scraped by getDetailsMultiplePages """
     
-    fname = ".data/data_{}_{}.p".format(postcode, datetime.today().strftime('%Y%m%d'))
+    fname = "{}/data_{}_{}.p".format(datafolder, postcode, datetime.today().strftime('%Y%m%d'))
     
     if os.path.exists(fname):
         print("File '{}' already exists'")
@@ -389,3 +389,40 @@ def mainLoop(args, bloadLinks=False):
     browser.close()
         
 
+def getPostcodes(borough):
+
+    """ Return dataframe read in from csv of postcodes
+        borough - STRING - name of borough to match .csv in data folder
+    """
+
+    pcfile = '{}/postcodes-{}.csv'.format(datafolder, borough)
+    with open(pcfile) as f: df = pd.read_csv(f)
+    return df
+
+def processPostcodes(df):
+
+    """ Produce possible postcode combinations.
+        For each postcode combination, we want to try the top-most level (least detail)
+
+        For example,
+            (1) Most detailed: SE17 2HA
+            (2) Less detail:   SE17 2H
+            (3) Less detail:   SE17 2
+            (4) Least detail:  SE17
+    """
+
+    # Exctract postcodes
+    pcodes = df.Postcode.copy()
+    p1 = pd.concat([pcodes, pcodes.str.split().map(lambda x:x[0])], axis=1)
+    p2 = pd.concat([p1, pcodes.str.split().map(lambda x:"{}{}".format(x[0], x[1][0]))], axis=1)
+    p3 = pd.concat([p2, pcodes.str.split().map(lambda x:"{}{}".format(x[0], x[1][:2]))], axis=1)
+    p3.columns = "postcode1,postcode2,postcode3,postcode4".split(',')
+
+
+    return p3
+    
+
+if __name__ == '__main__':
+    
+    pcodes = getPostcodes('lewisham')
+    p = processPostcodes(pcodes)
