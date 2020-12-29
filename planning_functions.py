@@ -19,6 +19,61 @@ rgx_showing = re.compile("(?<=-)[0-9]+")
 rgx_results = re.compile("(?<=of )[0-9]+")
 datafolder = 'data'
 
+
+def getArgs(params, args, ignorePostcode=False):
+
+    """ Return dictionary of arguments passed
+
+        args - List of options
+            -b: Mandatory - borough
+            -p: Optional - postcode to search, if not provided, will ask for it
+            
+        '-b': STRING - brough name, e.g. Southwark, Bromley, Lewisham
+        '-p': STRING - postcode
+        {'urlbase':url, 'postcode':postcode}
+    """
+
+    # Init dictionary
+    argsDict = {}
+
+    # Init postcode to null string
+    postcode = ''
+
+    # Extract borough from arguments
+    try:
+        borough = args[args.index('-b')+1]
+
+        # Check that borough name doesn't start with '-' for another option
+        if borough[0] == '-':
+            return 0
+    except ValueError:
+        print("-b not in argumnets provided by user")
+        return 0
+
+
+    # URL for planning applications        
+    urlbase = params[borough]['urlbase']
+    argsDict.update({'urlbase':urlbase})
+    
+    # Get postcode
+    bPostcode = False
+    for i in range(len(args)):
+
+        # Postcode argument
+        if args[i] == '-p' and len(args) >= i+1:
+            bPostcode = True
+            if args[i+1] != None:
+                
+                argsDict.update({'postcode':args[i+1]})
+
+    if not ignorePostcode:
+        if not bPostcode:
+            postcode = input("Please enter a postcode to search, e.g. SE154 for 'SE15 4' ")
+    argsDict.update({'borough':borough, 'postcode':postcode.upper()})
+
+    # Return output of function
+    return argsDict
+
 def makeSearch(postcode, browser):
 
     """ Take postcode and search for it using the browser"""
@@ -26,6 +81,7 @@ def makeSearch(postcode, browser):
     ## With browser object make search
     searchbox = browser.find_element_by_id('simpleSearchString')
 
+    searchbox.clear()
     ## Send postcode to box
     searchbox.send_keys(postcode)
 
@@ -423,10 +479,25 @@ def processPostcodes(df):
   
     return p3
 
+
 def processPostcodesD(df):
 
-    """ Return a python dictionary of postcodes """
+    """ Return a nested python dictionary of postcodes
 
+        Dataframe in format
+        
+        postcode1    postcode2    postcod3    postcode4
+        SE1 0AA      SE1          SE10        SE10A
+        SE1 0AB      .
+        .
+        .
+        .
+
+
+        Function returns a nested dictionary
+        'SE1': {'SE10
+    """
+    
     ### Init dictionary (postcode dictionary)
     pdict = {}
 
@@ -440,11 +511,17 @@ def processPostcodesD(df):
         subs = df[df.postcode2==pc].postcode3.unique()
         for spc in subs:
 
+            ssdict = {}
+
             # Get list of unique, most-detailed, postcodes
             subs2 = list(df[df.postcode3==spc].postcode4.unique())
 
-            # sub-ditionary updated
-            sdict.update({spc:subs2})
+            for sspc in subs2:
+                subs3 = list(df[df.postcode4==sspc].postcode1.unique())
+                
+                # sub-ditionary updated
+                ssdict.update({sspc:subs3})
+            sdict.update({spc:ssdict})
 
         # For this postcode2 (e.g. SE17) update dictionary
         pdict.update({pc:sdict})
@@ -452,7 +529,71 @@ def processPostcodesD(df):
 
     return pdict
 
-if __name__ == '__main__':
+def invalidPostcode(browser):
     
-    pcodes = getPostcodes('lewisham')
-    p = processPostcodes(pcodes)
+    """ Return True if the current search criteria fails due to having too many results
+        browser: selenium browser object after a search has been made
+    """
+    
+    # Browser element
+    el = browser.find_elements_by_xpath("//li[contains(text(), 'No results found.')]")
+    if len(el) > 0:
+        return True
+    else:
+        return False
+
+
+def tooManyResult(browser):
+    
+    """ Return True if the current search criteria fails due to having too many results
+        browser: selenium browser object after a search has been made
+    """
+    
+    # Browser element
+    el = browser.find_elements_by_xpath("//li[contains(text(), 'Too many results found. Please enter some more parameters.')]")
+    if len(el) > 0:
+        return True
+    else:
+        return False
+
+    
+def findHighestPostcode(browser, dct, urlbase):
+
+    """ Go through dictionary of dictionaries to find highest postcode level"""
+
+    # List of highest level of postcodes
+    results = []
+
+    i = 0
+
+    print(type(dct))
+    if type(dct) == dict:
+        
+        for k in dct:
+
+            i += 1
+
+            print("k = ", k, "i = ", i)
+
+            # Make search with postcode
+            makeSearch(k, browser)
+
+            if invalidPostcode(browser):
+                print("Ignore where postcode = ", k)
+                break
+
+            # The part of the postcode we've used has worked - this will be saved
+            if not tooManyResult(browser):
+                print("Result worked for {}".format(k))
+                results.append(k)
+
+                # Bring browser back to search page
+                browser.get(urlbase)
+            elif type(dct[k]) == 'dict':
+                results.append(findHighestPostcode(dct[k]))
+            if i == 8:
+                return results
+    return results
+
+
+
