@@ -580,11 +580,11 @@ def findHighestPostcode(browser, dct, urlbase):
 
             if invalidPostcode(browser):
                 #print("Ignore where postcode = ", k)
-                break
+                continue
 
             # The part of the postcode we've used has worked - this will be saved
             if not tooManyResult(browser):
-                #print("Result worked for {}".format(k))
+                print("Result worked for {}".format(k))
                 results.append(k)
 
                 # Bring browser back to search page
