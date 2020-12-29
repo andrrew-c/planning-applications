@@ -569,22 +569,22 @@ def findHighestPostcode(browser, dct, urlbase):
     print(type(dct))
     if type(dct) == dict:
         
-        for k in dct:
+        for k in tqdm(dct):
 
             i += 1
 
-            print("k = ", k, "i = ", i)
+            #print("k = ", k, "i = ", i)
 
             # Make search with postcode
             makeSearch(k, browser)
 
             if invalidPostcode(browser):
-                print("Ignore where postcode = ", k)
+                #print("Ignore where postcode = ", k)
                 break
 
             # The part of the postcode we've used has worked - this will be saved
             if not tooManyResult(browser):
-                print("Result worked for {}".format(k))
+                #print("Result worked for {}".format(k))
                 results.append(k)
 
                 # Bring browser back to search page
