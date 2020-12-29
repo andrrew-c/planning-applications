@@ -24,62 +24,12 @@ datafolder = 'data'
 # Open file and read in any parameters
 with open('{}/params.txt'.format(datafolder), 'rt') as f: params = json.loads(f.read())
     
-def getArgs(args):
-
-    """ Return dictionary of arguments passed
-
-        args - List of options
-            -b: Mandatory - borough
-            -p: Optional - postcode to search, if not provided, will ask for it
             
-        '-b': STRING - brough name, e.g. Southwark, Bromley, Lewisham
-        '-p': STRING - postcode
-        {'urlbase':url, 'postcode':postcode}
-    """
-
-    # Init dictionary
-    argsDict = {}
-
-    # Extract borough from arguments
-    try:
-        borough = args[args.index('-b')+1]
-
-        # Check that borough name doesn't start with '-' for another option
-        if borough[0] == '-':
-            return 0
-    except ValueError:
-        print("-b not in argumnets provided by user")
-        return 0
-
-
-    # URL for planning applications        
-    urlbase = params[borough]['urlbase']
-    argsDict.update({'urlbase':urlbase})
-    
-    # Get postcode
-    bPostcode = False
-    for i in range(len(args)):
-
-        # Postcode argument
-        if args[i] == '-p' and len(args) >= i+1:
-            bPostcode = True
-            if args[i+1] != None:
-                
-                argsDict.update({'postcode':args[i+1]})
-
-    if not bPostcode:
-        postcode = input("Please enter a postcode to search, e.g. SE154 for 'SE15 4' ")
-        argsDict.update({'postcode':postcode.upper()})
-
-    # Return output of function
-    return argsDict
-            
-
     
 if __name__== '__main__':
 
     print(sys.argv)
-    args = getArgs(sys.argv)
+    args = pf.getArgs(sys.argv)
     pf.mainLoop(args)
 
 
