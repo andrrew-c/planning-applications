@@ -21,7 +21,7 @@ import json
 
 
 # Open file and read in any parameters
-with open('.data/params.txt', 'rt') as f: params = json.loads(f.read())
+with open('data/params.txt', 'rt') as f: params = json.loads(f.read())
     
 def getArgs(args):
 
