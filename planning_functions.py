@@ -591,9 +591,8 @@ def findHighestPostcode(browser, dct, urlbase):
                 browser.get(urlbase)
             elif type(dct[k]) == 'dict':
                 results.append(findHighestPostcode(dct[k]))
-            if i == 8:
-                return results
-    return results
+            
+        return results
 
 
 
