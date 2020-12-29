@@ -51,6 +51,6 @@ if __name__ == '__main__':
 
     # List to dataframe, then dataframe to csv
     df = pd.DataFrame(data=valSearches, columns=['postcodes'])
-    df.to_csv(valFile.format(datafolder, args['borough']), index=False)
+    df.to_csv(valFile.format(datafolder, args['borough'].lower()), index=False)
         
     
