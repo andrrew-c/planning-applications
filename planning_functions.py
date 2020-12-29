@@ -451,7 +451,7 @@ def getPostcodes(borough):
         borough - STRING - name of borough to match .csv in data folder
     """
 
-    pcfile = '{}/postcodes-{}.csv'.format(datafolder, borough)
+    pcfile = '{}/postcodes-{}.csv'.format(datafolder, borough.lower())
     with open(pcfile) as f: df = pd.read_csv(f)
     return df
 
