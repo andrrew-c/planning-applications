@@ -573,7 +573,7 @@ def findHighestPostcode(browser, dct, urlbase):
 
             i += 1
 
-            #print("k = ", k, "i = ", i)
+            print("k = ", k, "i = ", i)
 
             # Make search with postcode
             makeSearch(k, browser)
