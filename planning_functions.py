@@ -17,10 +17,15 @@ from bs4 import BeautifulSoup as bs
 ## Num pages
 rgx_showing = re.compile("(?<=-)[0-9]+")
 rgx_results = re.compile("(?<=of )[0-9]+")
+
 datafolder = 'data'
 
 
-def getArgs(params, args, ignorePostcode=False):
+pcsearchfile = '{}/postcodes-searched.txt'.format(datafolder)
+
+
+
+def getArgs(params, args):
 
     """ Return dictionary of arguments passed
 
@@ -59,16 +64,15 @@ def getArgs(params, args, ignorePostcode=False):
     bPostcode = False
     for i in range(len(args)):
 
-        # Postcode argument
+        # Postcode argument found
         if args[i] == '-p' and len(args) >= i+1:
             bPostcode = True
             if args[i+1] != None:
                 
                 argsDict.update({'postcode':args[i+1]})
 
-    if not ignorePostcode:
-        if not bPostcode:
-            postcode = input("Please enter a postcode to search, e.g. SE154 for 'SE15 4' ")
+
+    # Update dictionary
     argsDict.update({'borough':borough, 'postcode':postcode.upper()})
 
     # Return output of function
@@ -358,7 +362,12 @@ def getDetailsMultiplePages(browser, links, singlePage=False):
 def saveApplicationInfo(df, postcode):
     
     """ Save the application information that has been scraped by getDetailsMultiplePages """
-    
+
+    # Out postcode
+    outPC = postcode.replace(' ', '_')
+    if postcode.find(' ') == -1:
+        outPC = outPC + '_'
+        
     fname = "{}/data_{}_{}.p".format(datafolder, postcode, datetime.today().strftime('%Y%m%d'))
     
     if os.path.exists(fname):
@@ -367,7 +376,10 @@ def saveApplicationInfo(df, postcode):
 
         with open(fname, 'wb') as f: pickle.dump(df, f)    
 
+def updatePostcodeLog(postcode, borough):
 
+    with open(pcsearchfile, 'at') as f: f.write('{},{}\n'.format(postcode,borough))
+    
 def hasAResult(browser):
 
     """ Returns True is there's at least one application for the searched for postcode
@@ -383,14 +395,19 @@ def mainLoop(args, bloadLinks=False):
 
 
     # Extract arguments from arguments dictionary
-    postcode = args['postcode']
-    urlbase= args['urlbase']
+    urlbase = args['urlbase']
+
+    # Borough
+    borough = args['borough']
     
     ## Init browser object on planning page
     browser = initbrowser(urlbase)
 
+    # Get a postcode
+    postcode = getNextPostcode(browser, borough)
+
     ## With browser object make search
-    makeSearch(postcode, browser)
+    #makeSearch(postcode, browser)
 
     # If there's at least one result for this postcode
     if not hasAResult(browser):
@@ -441,6 +458,9 @@ def mainLoop(args, bloadLinks=False):
     # Save application data
     saveApplicationInfo(df, postcode)
 
+    # Add postcode information to log
+    updatePostcodeLog(postcode, borough)
+    
     # Close browser
     browser.close()
         
@@ -470,13 +490,16 @@ def processPostcodes(df):
     # Exctract postcodes
     pcodes = df.Postcode.copy()
     p1 = pd.concat([pcodes, pcodes.str.split().map(lambda x:x[0])], axis=1)
-    p2 = pd.concat([p1, pcodes.str.split().map(lambda x:"{}{}".format(x[0], x[1][0]))], axis=1)
-    p3 = pd.concat([p2, pcodes.str.split().map(lambda x:"{}{}".format(x[0], x[1][:2]))], axis=1)
+    p2 = pd.concat([p1, pcodes.str.split().map(lambda x:"{} {}".format(x[0], x[1][0]))], axis=1)
+    p3 = pd.concat([p2, pcodes.str.split().map(lambda x:"{} {}".format(x[0], x[1][:2]))], axis=1)
 
+    
     ## Rename columns
     p3.columns = "postcode1,postcode2,postcode3,postcode4".split(',')
+    #print(p3.columns)
+    p3 = p3[list(p3.columns[1:]) + [p3.columns[0]]].copy()
+    p3.columns = "postcode1,postcode2,postcode3,postcode4".split(',')
 
-  
     return p3
 
 
@@ -487,7 +510,7 @@ def processPostcodesD(df):
         Dataframe in format
         
         postcode1    postcode2    postcod3    postcode4
-        SE1 0AA      SE1          SE10        SE10A
+        SE1 0AA      SE1          SE1 0       SE1 0A
         SE1 0AB      .
         .
         .
@@ -502,22 +525,22 @@ def processPostcodesD(df):
     pdict = {}
 
     # For each high level postcode (e.g. SE17)
-    for pc in df.postcode2.unique():
+    for pc in df.postcode1.unique():
         
         # init sub dictionary
         sdict = {}
 
         # For each level down (e.g. SE171, SE172, ...)
-        subs = df[df.postcode2==pc].postcode3.unique()
+        subs = df[df.postcode1==pc].postcode1.unique()
         for spc in subs:
 
             ssdict = {}
 
             # Get list of unique, most-detailed, postcodes
-            subs2 = list(df[df.postcode3==spc].postcode4.unique())
+            subs2 = list(df[df.postcode2==spc].postcode3.unique())
 
             for sspc in subs2:
-                subs3 = list(df[df.postcode4==sspc].postcode1.unique())
+                subs3 = list(df[df.postcode3==sspc].postcode4.unique())
                 
                 # sub-ditionary updated
                 ssdict.update({sspc:subs3})
@@ -528,6 +551,28 @@ def processPostcodesD(df):
 
 
     return pdict
+
+
+def getPostCodeDict(borough):
+
+
+    """ Return dictionary of dictionaries of postcodes given a borough """
+
+    postCodes2 = None
+    
+    if borough != '':
+        
+        # Postcode to search (dataframe, original data)
+        postcodes_ = getPostcodes(borough)
+
+        # Processed postcodes (dataframe)
+        postCodes = processPostcodes(postcodes_)
+
+        # Nested dictionary
+        postCodes2 = processPostcodesD(postCodes)
+
+    return postCodes2
+
 
 def invalidPostcode(browser):
     
@@ -557,7 +602,7 @@ def tooManyResult(browser):
         return False
 
     
-def findHighestPostcode(browser, dct, urlbase):
+def findHighestPostcode(browser, urlbase, df):
 
     """ Go through dictionary of dictionaries to find highest postcode level"""
 
@@ -566,7 +611,6 @@ def findHighestPostcode(browser, dct, urlbase):
 
     i = 0
 
-    print(type(dct))
     if type(dct) == dict:
         
         for k in tqdm(dct):
@@ -578,6 +622,7 @@ def findHighestPostcode(browser, dct, urlbase):
             # Make search with postcode
             makeSearch(k, browser)
 
+            # If postcode is invalid
             if invalidPostcode(browser):
                 #print("Ignore where postcode = ", k)
                 continue
@@ -589,10 +634,141 @@ def findHighestPostcode(browser, dct, urlbase):
 
                 # Bring browser back to search page
                 browser.get(urlbase)
-            elif type(dct[k]) == 'dict':
-                results.append(findHighestPostcode(dct[k]))
+            elif type(dct[k]) == dict:
+                print("Going down another level... k = ", k)
+                results.append(findHighestPostcode(browser, dct[k], urlbase))
+                print("Results = ", results)
+            elif type(dct[k]) == list:
+                print("List of postcodes = ", dct[k])
+                return dct[k]
             
         return results
 
+def pcHasBeenSearched(pc):
 
+    """ Return True if postcode has been searched"""
+
+    # If 'searched' log doesn't exist
+    if not os.path.isfile(pcsearchfile):
+
+        # Make file
+        with open(pcsearchfile, 'wt') as f: f.write('postcode,borough\n')
+    else:
+        # Get searched postcodes
+        pcdf = pd.read_csv(pcsearchfile)
+
+        if pcdf[pcdf.postcode==pc].shape[0] >0:
+            return True
+        else:
+            return False
+
+def getNextPostcode(browser, borough):
+
+    """ Finds postcode to search on: Returns a string of postcode with space in middle (if applicable)
+        With a browser object find which postcode we can use """
+    
+    # Load in standard .csv of postcodes
+    df1 = getPostcodes(borough)
+
+    # Process postcodes into SE1, SE1 0, SE1 0A, ....
+    df2 = processPostcodes(df1)
+
+    # Nested dictionary
+    #pcdict = processPostcodesD(df2)
+
+    pclist = df2.postcode1.unique().tolist()
+
+    # For each 'main' postcode (e.g. SE1) in the dataframe
+    for pc in pclist:
+
+        # If postcode has not been searched
+        if not pcHasBeenSearched(pc):
+
+            # Subset the main df
+            dfsubset = df2[df2.postcode1==pc]
+
+            # Iterate through each row
+            for r in range(dfsubset.shape[0]):
+
+                # Get row - pd.series
+                row = dfsubset.iloc[r]
+
+                # Try main key (pc)
+                # Make search with postcode
+                makeSearch(pc, browser)
+
+                # If postcode is invalid
+                if invalidPostcode(browser):
+                    #print("Ignore where postcode = ", k)
+                    continue
+            
+                # The part of the postcode we've used has worked - this will be saved
+                if not tooManyResult(browser):
+                    print("Result worked for {}".format(pc))
+                    return pc
+                else:
+
+                    ## POSTCODE 2
+                    pc = row.postcode2
+
+                    if not pcHasBeenSearched(pc):
+                        
+                        # Make search with postcode
+                        makeSearch(pc, browser)
+
+                        # If postcode is invalid
+                        if invalidPostcode(browser):
+                            #print("Ignore where postcode = ", k)
+                            continue
+
+                        
+                        # The part of the postcode we've used has worked - this will be saved
+                        if not tooManyResult(browser):
+                            print("Result worked for {}".format(pc))
+                            return pc   
+                            
+                        
+                        ## POSTCODE 3
+                        pc = row.postcode3
+
+                        if not pcHasBeenSearched(pc):
+
+                            # Make search with postcode
+                            makeSearch(pc, browser)
+
+                            # If postcode is invalid
+                            if invalidPostcode(browser):
+                                #print("Ignore where postcode = ", k)
+                                continue
+
+                            
+                            # The part of the postcode we've used has worked - this will be saved
+                            if not tooManyResult(browser):
+                                print("Result worked for {}".format(pc))
+                                return pc
+
+                            ## POSTCODE 4
+                            pc = row.postcode4
+
+                            if not pcHasBeenSearched(pc):
+
+                                # Make search with postcode
+                                makeSearch(pc, browser)
+
+                                # If postcode is invalid
+                                if invalidPostcode(browser):
+                                    #print("Ignore where postcode = ", k)
+                                    continue
+
+                                
+                                # The part of the postcode we've used has worked - this will be saved
+                                if not tooManyResult(browser):
+                                    print("Result worked for {}".format(pc))
+                                    return pc
+                                
+
+
+
+   
+        
 
