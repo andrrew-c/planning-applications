@@ -200,10 +200,16 @@ def getSearchResults(browser, searchResults, resultPages):
         return hrefs
     
 def saveLinks(hrefs, postcode):
-    
+
     """ With a list of hrefs, let's save as pickled object"""
+
+    # Out postcode
+    outPC = postcode.replace(' ', '_')
+    if postcode.find(' ') == -1:
+        outPC = outPC + '_'
+        
     
-    fname = "{}/links_{}_{}.p".format(datafolder, postcode, datetime.today().strftime('%Y%m%d'))
+    fname = "{}/links_{}_{}.p".format(datafolder, outPC, datetime.today().strftime('%Y%m%d'))
 
     # Does a file with a similar name already exist?
     if hrefs==None:
@@ -368,7 +374,7 @@ def saveApplicationInfo(df, postcode):
     if postcode.find(' ') == -1:
         outPC = outPC + '_'
         
-    fname = "{}/data_{}_{}.p".format(datafolder, postcode, datetime.today().strftime('%Y%m%d'))
+    fname = "{}/data_{}_{}.p".format(datafolder, outPC, datetime.today().strftime('%Y%m%d'))
     
     if os.path.exists(fname):
         print("File '{}' already exists'")
