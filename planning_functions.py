@@ -784,7 +784,6 @@ def getNextPostcode(browser, borough):
                             
                         
                         ## POSTCODE 3
-                        pdb.set_trace()
                         pc = row.postcode3
 
                         if pcHasBeenSearched(pc):
