@@ -18,6 +18,8 @@ from bs4 import BeautifulSoup as bs
 rgx_showing = re.compile("(?<=-)[0-9]+")
 rgx_results = re.compile("(?<=of )[0-9]+")
 
+import pdb
+
 datafolder = 'data'
 
 
@@ -650,15 +652,19 @@ def findHighestPostcode(browser, urlbase, df):
             
         return results
 
+def pcLogHeader():
+
+    # Make file
+    with open(pcsearchfile, 'wt') as f: f.write('postcode,borough,check\n')
+
 def pcHasBeenSearched(pc):
 
     """ Return True if postcode has been searched"""
-
+    
     # If 'searched' log doesn't exist
     if not os.path.isfile(pcsearchfile):
-
-        # Make file
-        with open(pcsearchfile, 'wt') as f: f.write('postcode,borough\n')
+        pcLogHeader()
+            
     else:
         # Get searched postcodes
         pcdf = pd.read_csv(pcsearchfile)
@@ -667,7 +673,22 @@ def pcHasBeenSearched(pc):
             return True
         else:
             return False
+        
+def updatePCLog(tipo, pc, borough):
 
+    # If file doesn't exist
+    if not os.path.isfile(pcsearchfile):
+        # Make file
+        pcLogHeader()
+        
+    if tipo=='invalid':
+        strng = 'invalid postcode'
+    elif tipo=='toomany':
+        strng = 'too many results'
+
+    # Write out to log
+    with open(pcsearchfile, 'at') as f: f.write("{},{},{}\n".format(pc, borough, strng))
+        
 def getNextPostcode(browser, borough):
 
     """ Finds postcode to search on: Returns a string of postcode with space in middle (if applicable)
@@ -684,11 +705,20 @@ def getNextPostcode(browser, borough):
 
     pclist = df2.postcode1.unique().tolist()
 
+    # Load in processed postcodes
+    procList = pd.read_csv(pcsearchfile).postcode.to_list()
+
     # For each 'main' postcode (e.g. SE1) in the dataframe
     for pc in pclist:
 
-        # If postcode has not been searched
-        if not pcHasBeenSearched(pc):
+        # If postcode has been searched
+        if pcHasBeenSearched(pc):
+
+            # go to next pc in pclist
+            continue
+
+        # Else, postcode has not been searched - keep going down
+        else:
 
             # Subset the main df
             dfsubset = df2[df2.postcode1==pc]
@@ -696,16 +726,30 @@ def getNextPostcode(browser, borough):
             # Iterate through each row
             for r in range(dfsubset.shape[0]):
 
+                # Init skip to false
+                skip = False
+
                 # Get row - pd.series
                 row = dfsubset.iloc[r]
 
+                # Check whether we should skip this section of postcodes
+                for sr in row:
+                    
+                    if sr in procList:
+                        skip = True
+                        break
+
+                if skip:
+                    continue
+                
                 # Try main key (pc)
                 # Make search with postcode
                 makeSearch(pc, browser)
 
                 # If postcode is invalid
                 if invalidPostcode(browser):
-                    #print("Ignore where postcode = ", k)
+                    #print("Ignore where postcode = ", k)#
+                    updatePCLog('invalid', pc, borough)
                     continue
             
                 # The part of the postcode we've used has worked - this will be saved
@@ -713,11 +757,14 @@ def getNextPostcode(browser, borough):
                     print("Result worked for {}".format(pc))
                     return pc
                 else:
+                    
 
                     ## POSTCODE 2
                     pc = row.postcode2
 
-                    if not pcHasBeenSearched(pc):
+                    if pcHasBeenSearched(pc):
+                        continue
+                    else:
                         
                         # Make search with postcode
                         makeSearch(pc, browser)
@@ -725,19 +772,24 @@ def getNextPostcode(browser, borough):
                         # If postcode is invalid
                         if invalidPostcode(browser):
                             #print("Ignore where postcode = ", k)
+                            #updatePCLog('invalid', pc, borough)
                             continue
 
                         
                         # The part of the postcode we've used has worked - this will be saved
                         if not tooManyResult(browser):
                             print("Result worked for {}".format(pc))
-                            return pc   
+                            return pc
+                        
                             
                         
                         ## POSTCODE 3
+                        pdb.set_trace()
                         pc = row.postcode3
 
-                        if not pcHasBeenSearched(pc):
+                        if pcHasBeenSearched(pc):
+                            break
+                        else:
 
                             # Make search with postcode
                             makeSearch(pc, browser)
@@ -745,6 +797,7 @@ def getNextPostcode(browser, borough):
                             # If postcode is invalid
                             if invalidPostcode(browser):
                                 #print("Ignore where postcode = ", k)
+                                #updatePCLog('invalid', pc, borough)
                                 continue
 
                             
@@ -752,11 +805,15 @@ def getNextPostcode(browser, borough):
                             if not tooManyResult(browser):
                                 print("Result worked for {}".format(pc))
                                 return pc
+                            else:
+                                pass #updatePCLog('toomany', pc, borough)
 
                             ## POSTCODE 4
                             pc = row.postcode4
 
-                            if not pcHasBeenSearched(pc):
+                            if pcHasBeenSearched(pc):
+                                break
+                            else:
 
                                 # Make search with postcode
                                 makeSearch(pc, browser)
@@ -764,6 +821,7 @@ def getNextPostcode(browser, borough):
                                 # If postcode is invalid
                                 if invalidPostcode(browser):
                                     #print("Ignore where postcode = ", k)
+                                    #updatePCLog('invalid', pc, borough)
                                     continue
 
                                 
@@ -771,6 +829,9 @@ def getNextPostcode(browser, borough):
                                 if not tooManyResult(browser):
                                     print("Result worked for {}".format(pc))
                                     return pc
+                                else:
+
+                                    pass #updatePCLog('toomany', pc, borough)
                                 
 
 
