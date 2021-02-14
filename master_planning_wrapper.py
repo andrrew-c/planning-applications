@@ -19,6 +19,7 @@ import functions as mf
 import json
 
 datafolder = 'data'
+secsSleep = 1
 
 # Open file and read in any parameters
 with open('{}/params.txt'.format(datafolder), 'rt') as f: params = json.loads(f.read())
@@ -47,8 +48,15 @@ if __name__== '__main__':
         pcdict = pf.getPostCodeDict(args['borough'])
 
 
-    # Kick off the main loop
-    pf.mainLoop(args)
+    while args['numIters'] > 0:
+        
+        # Kick off the main loop
+        pf.mainLoop(args)
+
+        print("Time sleep {} seconds".format(secsSleep))
+        time.sleep(secsSleep)
+        # Reduce number of iterations by one
+        args['numIters'] -= 1
 
         
 
