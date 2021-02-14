@@ -445,7 +445,7 @@ def mainLoop(args, bloadLinks=False):
     postcode = getNextPostcode(browser, borough)
 
     ## With browser object make search
-    makeSearch(postcode, browser)
+    #makeSearch(postcode, browser)
 
     # If there's at least one result for this postcode
     if not hasAResult(browser):
