@@ -74,8 +74,16 @@ def getArgs(params, args):
                 argsDict.update({'postcode':args[i+1]})
 
 
+    # Default - one loop
+    numIters = 1
+    # Get number of iterations
+    for i in range(len(args)):
+
+        if args[i] == '--num' and len(args) >= i+1:
+            numIters = int(args[i+1])
+
     # Update dictionary
-    argsDict.update({'borough':borough, 'postcode':postcode.upper()})
+    argsDict.update({'borough':borough, 'postcode':postcode.upper(), 'numIters':numIters})
 
     # Return output of function
     return argsDict
@@ -401,6 +409,28 @@ def hasAResult(browser):
 
 def mainLoop(args, bloadLinks=False):
 
+    """
+        Run main program for getting planning application data.
+
+        args - DICT
+        bloadLinks - BOOLEAN
+
+
+        -- Steps --
+        - Get information fromm args DICT
+            Get url for borough portal and get borough name
+
+        - Initialise browser for scraping
+
+        - postcode - get next postcode in loop (based on result of a function
+
+        - Make a search for this postcode and check whether there are any results
+
+        - Check if the results are all on one page, or across multiple
+
+        - 
+    """
+
 
     # Extract arguments from arguments dictionary
     urlbase = args['urlbase']
@@ -415,7 +445,7 @@ def mainLoop(args, bloadLinks=False):
     postcode = getNextPostcode(browser, borough)
 
     ## With browser object make search
-    #makeSearch(postcode, browser)
+    makeSearch(postcode, browser)
 
     # If there's at least one result for this postcode
     if not hasAResult(browser):
@@ -425,9 +455,12 @@ def mainLoop(args, bloadLinks=False):
     
     # Boolean - did the search return multiple results or a single application
     searchResults = hasMultipleResults(browser)
+    print("Searchresults - has multi")
 
     # If search results
     if searchResults:
+
+        print("Had search results")
 
         # Update results page to show 100/page
         makeResults100(browser)
@@ -440,7 +473,7 @@ def mainLoop(args, bloadLinks=False):
             # Get Links for apps: Iterate through all search pages and get links
             hrefs = getSearchResults(browser, searchResults, resultPages)
 
-            ## Save links to pickled object
+            # Save links to pickled object
             saveLinks(hrefs, postcode) #os.path.abspath(os.curdir)
 
         # User thinks pickled object already exists
@@ -448,20 +481,22 @@ def mainLoop(args, bloadLinks=False):
 
             print("Let's load up links")
             hrefs = loadLinks(postcode)
+            
 
         # With links, create dataframe
         if hrefs != None:
             df = getDetailsMultiplePages(browser, hrefs)
+            
         else:
             print("Error - no hrefs loaded up")
+          
 
     ## Else, there's only one application for the given postcode
     else:
 
         df = getDetailsMultiplePages(browser, None, True)
-
+      
     print("df shape =", df.shape)
-        
         
     # Save application data
     saveApplicationInfo(df, postcode)
@@ -640,6 +675,7 @@ def findHighestPostcode(browser, urlbase, df):
                 print("Result worked for {}".format(k))
                 results.append(k)
 
+                print("Browser to get urlbase", urlbase)
                 # Bring browser back to search page
                 browser.get(urlbase)
             elif type(dct[k]) == dict:
